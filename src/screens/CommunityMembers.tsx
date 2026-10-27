@@ -1,0 +1,17 @@
+import { useEffect, useState } from 'react';
+import { ShieldCheck, Users } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import PageTransition from '../components/PageTransition';
+import ScreenHeader from '../components/ScreenHeader';
+import { loadCommunities, loadCommunityMembers } from '../lib/communities';
+import type { Community, CommunityMembership } from '../data/types';
+import { useStore } from '../store/store';
+
+export default function CommunityMembers() {
+  const { id = '' } = useParams<{ id: string }>(); const navigate = useNavigate(); const { session, getProfile } = useStore();
+  const [community, setCommunity] = useState<Community | null>(null); const [members, setMembers] = useState<CommunityMembership[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
+  useEffect(() => { if (!session) return; void (async () => { setLoading(true); try { const data = await loadCommunities(session.user.id); const item = data.communities.find((entry) => entry.id === id) ?? null; setCommunity(item); if (item && (item.visibility === 'public' || data.memberships.some((member) => member.communityId === id && member.status === 'approved'))) setMembers(await loadCommunityMembers(id)); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load community members.'); } finally { setLoading(false); } })(); }, [id, session?.user.id]);
+  if (loading) return <PageTransition><ScreenHeader title="Members" /><div className="mx-5 mt-5 h-40 animate-pulse rounded-2xl bg-[var(--color-surface-2)]" /></PageTransition>;
+  if (!community) return <PageTransition><ScreenHeader title="Members" /><div className="px-6 pt-20 text-center"><p className="font-semibold">Community not found</p></div></PageTransition>;
+  return <PageTransition><ScreenHeader title="Community members" /><div className="mx-auto max-w-[760px] px-5 pb-10 pt-5"><div className="rounded-2xl border border-[var(--color-primary)]/25 bg-[var(--color-primary)]/10 p-4"><div className="flex items-center gap-3"><Users className="text-[var(--color-primary-2)]" size={21} /><div><h1 className="font-bold">{community.memberCount} members</h1><p className="mt-1 text-sm text-[var(--color-text-dim)]">{community.name}</p></div></div></div>{error ? <p className="mt-4 rounded-xl bg-rose-500/10 p-3 text-sm text-rose-300">{error}</p> : <div className="mt-5 space-y-2">{members.length ? members.map((member) => <article key={member.userId} className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5"><button onClick={() => navigate(`/profile/${member.userId}`)} className="min-w-0 text-left"><p className="truncate text-sm font-semibold">{getProfile(member.userId)?.displayName || 'Community member'}</p><p className="mt-1 text-xs text-[var(--color-text-faint)]">{member.role === 'admin' ? 'Community admin' : 'Member'}</p></button>{member.role === 'admin' && <span className="flex items-center gap-1 rounded-full bg-[var(--color-primary)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--color-primary-2)]"><ShieldCheck size={13} />Admin</span>}</article>) : <div className="rounded-2xl border border-dashed border-[var(--color-border)] p-7 text-center text-sm text-[var(--color-text-dim)]">Member details are only shown when the community privacy rules permit them.</div>}</div>}</div></PageTransition>;
+}

@@ -1,0 +1,15 @@
+import { supabase } from './supabase';
+
+export type Conversation = { id: string; participantOne: string; participantTwo: string; bookId?: string; createdAt: string };
+export type ChatMessage = { id: string; conversationId: string; senderId: string; body: string; createdAt: string };
+type ConversationRow = { id: string; participant_one: string; participant_two: string; book_id: string | null; created_at: string };
+type MessageRow = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
+const toConversation = (row: ConversationRow): Conversation => ({ id: row.id, participantOne: row.participant_one, participantTwo: row.participant_two, bookId: row.book_id ?? undefined, createdAt: row.created_at });
+const toMessage = (row: MessageRow): ChatMessage => ({ id: row.id, conversationId: row.conversation_id, senderId: row.sender_id, body: row.body, createdAt: row.created_at });
+
+export async function loadConversations() { if (!supabase) throw new Error('Supabase is not configured.'); const { data, error } = await supabase.from('conversations').select('*').order('created_at', { ascending: false }); if (error) throw new Error(error.message); return (data as ConversationRow[] ?? []).map(toConversation); }
+export async function loadMessages(conversationId: string) { if (!supabase) throw new Error('Supabase is not configured.'); const { data, error } = await supabase.from('messages').select('*').eq('conversation_id', conversationId).order('created_at'); if (error) throw new Error(error.message); return (data as MessageRow[] ?? []).map(toMessage); }
+export async function sendMessage(conversationId: string, senderId: string, body: string) { if (!supabase) throw new Error('Supabase is not configured.'); const { data, error } = await supabase.from('messages').insert({ conversation_id: conversationId, sender_id: senderId, body }).select('*').single(); if (error || !data) throw new Error(error?.message ?? 'Could not send message.'); return toMessage(data as MessageRow); }
+export async function openAcceptedRequestConversation(requestId: string) { if (!supabase) throw new Error('Supabase is not configured.'); const { data, error } = await supabase.rpc('get_or_create_accepted_request_conversation', { request_id: requestId }); if (error || !data) throw new Error(error?.message ?? 'Chat becomes available after the donor accepts this request.'); return data as string; }
+export async function confirmBookHandover(requestId: string) { if (!supabase) throw new Error('Supabase is not configured.'); const { error } = await supabase.rpc('confirm_book_handover', { request_id: requestId }); if (error) throw new Error(error.message); }
+export async function resolveBookReservation(requestId: string, resolution: 'receiver_cancel' | 'donor_cancel' | 'given_away') { if (!supabase) throw new Error('Supabase is not configured.'); const { error } = await supabase.rpc('resolve_book_reservation', { request_id: requestId, resolution }); if (error) throw new Error(error.message); }
