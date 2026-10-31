@@ -33,3 +33,4 @@ Bookbridge/
 *.njsproj
 *.sln
 *.sw?
+.vercel/
