@@ -368,19 +368,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteBook = useCallback(async (book: Book) => {
     if (!supabase || !userId || book.ownerId !== userId) return { ok: false, reason: 'Only the book owner can remove this listing.' };
-    if (book.status !== 'Available') return { ok: false, reason: book.status === 'Given' ? 'Donated books remain in your history.' : 'Only available books without an active request can be deleted.' };
-    const { data: activeRequests, error: requestError } = await supabase.from('book_requests').select('id, status').eq('book_id', book.id).in('status', ['Pending', 'Accepted']);
-    if (requestError) return { ok: false, reason: `Could not verify active requests: ${requestError.message}` };
-    if (activeRequests?.length) {
-      const activeStatuses = [...new Set(activeRequests.map((request) => request.status))];
-      return { ok: false, activeStatuses, reason: `This book has an active ${activeStatuses.join(' / ')} request. Resolve it before deleting the listing.` };
-    }
-    const { data: deleted, error } = await supabase.from('books').delete().eq('id', book.id).eq('owner_id', userId).select('id');
+    if (book.status === 'Given') return { ok: false, reason: 'Completed donations remain in your history.' };
+    const { data: deletedCoverUrl, error } = await supabase.rpc('delete_owned_book_listing', { target_book_id: book.id });
     if (error) return { ok: false, reason: `Database deletion failed: ${error.message}` };
-    if (!deleted?.length) return { ok: false, reason: 'Database deletion was blocked. Confirm you are the owner and that the books delete RLS policy is enabled.' };
     setBooks((previous) => previous.filter((item) => item.id !== book.id));
     const marker = '/storage/v1/object/public/book-covers/';
-    const objectPath = book.coverUrl?.includes(marker) ? decodeURIComponent(book.coverUrl.slice(book.coverUrl.indexOf(marker) + marker.length).split('?')[0]) : undefined;
+    const coverUrl = typeof deletedCoverUrl === 'string' ? deletedCoverUrl : book.coverUrl;
+    const objectPath = coverUrl?.includes(marker) ? decodeURIComponent(coverUrl.slice(coverUrl.indexOf(marker) + marker.length).split('?')[0]) : undefined;
     if (objectPath) {
       const { error: storageError } = await supabase.storage.from('book-covers').remove([objectPath]);
       if (storageError) return { ok: true, warning: 'Book removed. Its cover image could not be cleaned up automatically.' };

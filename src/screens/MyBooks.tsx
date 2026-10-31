@@ -54,7 +54,7 @@ export default function MyBooks() {
                 </span>
                 {acceptedRequest && b.status === 'Available' && <p className="mt-1 text-[10px] text-amber-400">Accepted request — reservation sync pending</p>}
               </div>
-            </button>{displayStatus === 'Available' && <button aria-label={`Delete ${b.title}`} onClick={() => { setMessage(''); setModalError(''); setSelectedBook(b); }} className="tap rounded-xl p-2.5 text-rose-400"><Trash2 size={17} /></button>}</article>
+            </button>{b.status !== 'Given' && <button aria-label={`Delete ${b.title}`} onClick={() => { setMessage(''); setModalError(''); setSelectedBook(b); }} className="tap rounded-xl p-2.5 text-rose-400"><Trash2 size={17} /></button>}</article>
           ); })}
 
           <button
