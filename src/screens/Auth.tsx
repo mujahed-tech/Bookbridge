@@ -23,7 +23,9 @@ export default function Auth() {
       : await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setLoading(false);
     if (result.error) {
-      setMessage(result.error.message);
+      setMessage(result.error.code === 'over_email_send_rate_limit'
+        ? 'Too many confirmation emails were requested. Please wait a while, then try again or check your spam folder.'
+        : result.error.message);
       return;
     }
     if (mode === 'signup' && !result.data.session) {
