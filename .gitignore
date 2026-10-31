@@ -7,9 +7,20 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+node_modules/
+dist/
+dist-ssr/
+.npm-cache/
+
+# Local agent/editor state and an accidental legacy nested checkout.
+# These are not application source files.
+.claude/
+Bookbridge/
+
+# Local credentials. Keep the documented template tracked.
+.env
+.env.*
+!.env.example
 *.local
 
 # Editor directories and files

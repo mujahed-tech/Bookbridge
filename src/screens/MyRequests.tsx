@@ -8,7 +8,7 @@ import { relativeTime } from '../lib/time';
 import { useStore } from '../store/store';
 import { confirmBookHandover, openAcceptedRequestConversation } from '../lib/chat';
 
-const statusMeta = { Pending: { color: '#F5A623', icon: Clock }, Accepted: { color: '#2DD4BF', icon: CheckCircle2 }, Declined: { color: '#F87171', icon: ListX }, Completed: { color: '#7C6FFF', icon: CheckCircle2 } };
+const statusMeta = { Pending: { color: '#F5A623', icon: Clock }, Accepted: { color: '#2DD4BF', icon: CheckCircle2 }, Declined: { color: '#F87171', icon: ListX }, Cancelled: { color: '#94A3B8', icon: ListX }, Completed: { color: '#7C6FFF', icon: CheckCircle2 } };
 export default function MyRequests() {
   const navigate = useNavigate(); const { requests } = useStore(); const [error, setError] = useState('');
   const chat = async (requestId: string) => { try { navigate(`/chat/${await openAcceptedRequestConversation(requestId)}`); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not open chat.'); } };
