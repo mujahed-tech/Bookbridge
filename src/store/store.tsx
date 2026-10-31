@@ -41,6 +41,8 @@ type RequestRow = {
   notes: string | null;
   urgency: BookRequest['urgency'];
   status: BookRequest['status'];
+  donor_confirmed_at?: string | null;
+  receiver_confirmed_at?: string | null;
   created_at: string;
 };
 
@@ -50,6 +52,9 @@ type NotificationRow = {
   title: string;
   body: string;
   link: string | null;
+  book_id?: string | null;
+  request_id?: string | null;
+  conversation_id?: string | null;
   read_at: string | null;
   created_at: string;
 };
@@ -90,6 +95,8 @@ const toRequest = (row: RequestRow): BookRequest => ({
   notes: row.notes ?? '',
   urgency: row.urgency,
   status: row.status,
+  donorConfirmedAt: row.donor_confirmed_at ?? undefined,
+  receiverConfirmedAt: row.receiver_confirmed_at ?? undefined,
   createdAt: row.created_at,
 });
 
@@ -99,6 +106,9 @@ const toNotification = (row: NotificationRow): Notification => ({
   title: row.title,
   body: row.body,
   link: row.link ?? '/home',
+  bookId: row.book_id ?? undefined,
+  requestId: row.request_id ?? undefined,
+  conversationId: row.conversation_id ?? undefined,
   read: Boolean(row.read_at),
   createdAt: row.created_at,
 });
@@ -204,7 +214,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       client.from('book_requests').select('*').order('created_at', { ascending: false }),
       client
         .from('notifications')
-        .select('id, kind, title, body, link, read_at, created_at')
+        .select('id, kind, title, body, link, book_id, request_id, conversation_id, read_at, created_at')
         .order('created_at', { ascending: false }),
     ]);
 
@@ -339,20 +349,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const respondToRequest = useCallback(
     async (request: BookRequest, status: 'Accepted' | 'Declined') => {
       if (!supabase || !userId) return false;
-      const { error } = await supabase.from('book_requests').update({ status }).eq('id', request.id);
+      const { error } = await supabase.rpc('respond_to_book_request', { request_id: request.id, decision: status });
       if (error) return false;
-      if (status === 'Accepted' && request.bookId) {
-        const { error: bookError } = await supabase.from('books').update({ status: 'Reserved' }).eq('id', request.bookId);
-        if (bookError) {
-          await supabase.from('book_requests').update({ status: 'Pending' }).eq('id', request.id);
-          return false;
-        }
-        setBooks((previous) => previous.map((book) => book.id === request.bookId ? { ...book, status: 'Reserved' } : book));
-      }
-      setReceivedRequests((previous) => previous.map((item) => item.id === request.id ? { ...item, status } : item));
+      await loadData(userId);
       return true;
     },
-    [userId],
+    [loadData, userId],
   );
 
   const updateBookStatus = useCallback(

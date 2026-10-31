@@ -71,6 +71,8 @@ export interface BookRequest {
   notes: string;
   urgency: RequestUrgency;
   status: RequestStatus;
+  donorConfirmedAt?: string;
+  receiverConfirmedAt?: string;
   createdAt: string;
 }
 
@@ -109,6 +111,9 @@ export interface Notification {
   title: string;
   body: string;
   link: string;
+  bookId?: string;
+  requestId?: string;
+  conversationId?: string;
   read: boolean;
   createdAt: string;
 }
